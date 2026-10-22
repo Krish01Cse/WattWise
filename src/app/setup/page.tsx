@@ -462,6 +462,29 @@ export default function SetupPage() {
         baseTariffInr: baseEnergyRate,
         monthlyBudgetInr: targetBudget,
         telemetrySource: dataSource === "HISTORICAL" ? "dataset_historical" : dataSource === "VIRTUAL" ? "virtual_simulator" : "physical_sensors",
+        appliances: appliances.map((a) => ({
+          name: a.name,
+          category: a.iconType || "general",
+          count: a.count,
+          wattage: a.ratingWatts,
+          hoursPerDay: a.dailyRunHours,
+          dailyKwh: Number(((a.count * a.ratingWatts * a.dailyRunHours) / 1000).toFixed(3)),
+          icon:
+            a.iconType === "ac"
+              ? "❄️"
+              : a.iconType === "fridge"
+              ? "🧊"
+              : a.iconType === "fan"
+              ? "🌀"
+              : a.iconType === "geyser"
+              ? "🔥"
+              : a.iconType === "tv"
+              ? "📺"
+              : a.iconType === "washer"
+              ? "🧺"
+              : "⚡",
+          isCustom: a.iconType === "custom",
+        })),
       });
 
       // Call backend trainModel in parallel
@@ -534,7 +557,7 @@ export default function SetupPage() {
     }, 3600);
   }
 
-  // Proceed button handler
+  // Proceed button handler with progressive Supabase backend sync
   function handleContinue() {
     if (currentStep === 1) {
       if (!householdName.trim()) {
@@ -542,10 +565,34 @@ export default function SetupPage() {
         return;
       }
       setValidationError("");
+      // Sync Part 1 to Supabase backend
+      api.household
+        .update({
+          residenceName: householdName,
+          residentsCount: Number(residents),
+          city: selectedCity.name,
+          state: selectedCity.state,
+          housingType: homeType.toLowerCase().replace(/ /g, "_"),
+          sanctionedLoadKw: sanctionedLoad,
+          phaseType: connectionType === "Single Phase" ? "single_phase" : "three_phase",
+        })
+        .catch((err) => console.warn("Step 1 backend sync note:", err));
+
       setCurrentStep(2);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (currentStep === 2) {
       setValidationError("");
+      // Sync Part 2 to Supabase backend
+      api.household
+        .update({
+          discomName: selectedDiscom.name,
+          discomCode: selectedDiscom.id,
+          tariffStructure: billingArchitecture.toLowerCase(),
+          baseTariffInr: baseEnergyRate,
+          monthlyBudgetInr: targetBudget,
+        })
+        .catch((err) => console.warn("Step 2 backend sync note:", err));
+
       setCurrentStep(3);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (currentStep === 3) {
