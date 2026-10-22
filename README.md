@@ -68,9 +68,10 @@ Built with an **instrument-panel aesthetic**, WattWise pairs high-contrast monos
     * Front Load Washing Machines (650W, motor pulse)
   * Real-time calculation summing to baseline `31.69 kWh/day` and `950.8 kWh/mo`.
   * **Custom Equipment Ingestion**: Inline modal to inject custom devices (e.g., EV Chargers, Induction hobs, Microwaves).
-* **Step 4 // Telemetry Data Source**:
-  * *Historical Indian Household Dataset*: 90-day pre-calibrated baseline (15-min resolution, 8,640 rows, zero latency).
-  * *Real-Time Virtual Telemetry Node*: 1-second WebSocket emission with ±4.2% stochastic noise and simulated voltage dips.
+* **Step 4 // Telemetry Data Source & Model Training**:
+  * *Historical Indian Household Dataset*: Pre-calibrated 90-day baseline or **custom CSV/JSON dataset upload** with drag-and-drop parsing and sample CSV template generation.
+  * *Real-Time Virtual Telemetry Node*: Interactive runtime controls for continuous base load (W), grid voltage bounds (210V-245V), stochastic noise (±4.2%), inrush multipliers, and live pulsating stream ticker.
+  * *NILM-DisaggNet v2.4 Calibration Pipeline*: Integrated 5-epoch training modal visualizing progressive loss descent ($0.384 \to 0.031$), $R^2$ accuracy scoring ($96.8\%$), live terminal stream, and automatic dashboard deployment upon convergence.
   * *Connected Physical Sensors*: MQTT / PZEM-004T split-core CT clamp ingestion.
 
 ### 4. Energy Overview Dashboard (`/dashboard`)
