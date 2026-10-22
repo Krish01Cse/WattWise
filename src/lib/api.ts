@@ -81,6 +81,29 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(reading),
       }),
+    uploadDataset: (payload: { name?: string; csvContent?: string; totalRecords?: number; dataSourceType?: string }) =>
+      fetchJson<any>('/telemetry/upload-dataset', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    configureSimulator: (params: {
+      baseWatts?: number;
+      voltageMin?: number;
+      voltageMax?: number;
+      noisePct?: number;
+      surgeMultiplier?: number;
+      samplingIntervalSec?: number;
+    }) =>
+      fetchJson<any>('/telemetry/configure-simulator', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      }),
+    trainModel: (payload: { datasetName?: string; totalRecords?: number; epochs?: number; customWeights?: Record<string, number> }) =>
+      fetchJson<any>('/telemetry/train-model', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    getModelStatus: () => fetchJson<any>('/telemetry/model-status'),
   },
 
   // Anomalies
