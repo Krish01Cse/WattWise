@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { UserProfileMenu } from "@/components/layout/UserProfileMenu";
 
 interface UserSettingsState {
   demoMode: boolean;
@@ -346,12 +347,8 @@ export default function SettingsPage() {
             )}
           </div>
 
-          {/* User Circle Avatar */}
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white cursor-pointer hover:opacity-90 transition-opacity">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-            </svg>
-          </div>
+          {/* User Circle Avatar with Interactive Profile Dropdown */}
+          <UserProfileMenu currentEmail={settings.emailAddress} />
         </div>
       </header>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -15,6 +15,28 @@ interface NavItem {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [userName, setUserName] = useState("Aditya K.");
+  const [userInitials, setUserInitials] = useState("AK");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("wattwise_session");
+        if (raw) {
+          const s = JSON.parse(raw);
+          if (s?.user?.fullName) {
+            setUserName(s.user.fullName);
+            const parts = s.user.fullName.trim().split(" ");
+            setUserInitials(parts.map((p: string) => p[0]).slice(0, 2).join("").toUpperCase());
+          } else if (s?.user?.email) {
+            const prefix = s.user.email.split("@")[0];
+            setUserName(prefix.charAt(0).toUpperCase() + prefix.slice(1));
+            setUserInitials(prefix.slice(0, 2).toUpperCase());
+          }
+        }
+      } catch {}
+    }
+  }, []);
 
   const navItems: NavItem[] = [
     {
@@ -160,11 +182,11 @@ export function Sidebar() {
         <div className="flex items-center justify-between pt-3 border-t border-[#202227]">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded bg-[#2a2c33] font-mono text-xs font-bold text-white border border-[#373a44]">
-              AK
+              {userInitials}
             </div>
             <div>
               <div className="font-mono text-xs font-bold text-white leading-tight">
-                Aditya K.
+                {userName}
               </div>
               <div className="font-mono text-[9px] text-[#727782]">
                 HOME ADMIN
