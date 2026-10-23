@@ -1,1 +1,5 @@
-export default function AnomaliesPage() { return <main>Anomalies</main>; }
+import { redirect } from "next/navigation";
+
+export default function AnomaliesPage() {
+  redirect("/bills");
+}

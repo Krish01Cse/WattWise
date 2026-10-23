@@ -10,6 +10,7 @@ interface NavItem {
   number: string;
   badge?: string;
   icon: React.ReactNode;
+  matchHrefs?: string[];
 }
 
 export function Sidebar() {
@@ -42,35 +43,25 @@ export function Sidebar() {
       ),
     },
     {
-      name: "BILL ESTIMATOR",
+      name: "BILL & ANOMALIES",
       href: "/bills",
       number: "03",
+      badge: "2",
+      matchHrefs: ["/bills", "/anomalies"],
       icon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
           <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-        </svg>
-      ),
-    },
-    {
-      name: "ANOMALIES",
-      href: "/anomalies",
-      number: "04",
-      badge: "2",
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
+          <line x1="12" y1="18" x2="12.01" y2="18" />
+          <line x1="12" y1="9" x2="12" y2="14" />
         </svg>
       ),
     },
     {
       name: "SETTINGS",
       href: "/settings",
-      number: "05",
+      number: "04",
       icon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="3" />
@@ -106,6 +97,8 @@ export function Sidebar() {
             const isActive =
               item.href === "/dashboard"
                 ? pathname === "/dashboard" || pathname === "/"
+                : item.matchHrefs
+                ? item.matchHrefs.some((h) => pathname?.startsWith(h))
                 : pathname?.startsWith(item.href);
 
             return (
