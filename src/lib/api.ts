@@ -129,4 +129,24 @@ export const api = {
         `/reference/discoms?city=${encodeURIComponent(city || '')}&state=${encodeURIComponent(state || '')}`
       ),
   },
+
+  // Settings & Preferences
+  settings: {
+    get: () => fetchJson<any>('/settings'),
+    update: (payload: any) =>
+      fetchJson<any>('/settings', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }),
+    changePassword: (payload: { currentPassword?: string; newPassword: string; email?: string }) =>
+      fetchJson<any>('/settings/change-password', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    reset: () =>
+      fetchJson<any>('/settings/reset', {
+        method: 'POST',
+      }),
+  },
 };
+
