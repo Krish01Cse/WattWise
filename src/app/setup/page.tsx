@@ -126,7 +126,7 @@ export default function SetupPage() {
   const [dataSource, setDataSource] = useState<DataSourceOption>("HISTORICAL");
   const [historicalMode, setHistoricalMode] = useState<"PRELOADED" | "CUSTOM_UPLOAD">("PRELOADED");
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
-  const [uploadedRowCount, setUploadedRowCount] = useState<number>(8640);
+  const [uploadedRowCount, setUploadedRowCount] = useState<number>(10080);
   const [uploadedFileContent, setUploadedFileContent] = useState<string>("");
   const [isUploadingDataset, setIsUploadingDataset] = useState<boolean>(false);
 
@@ -431,7 +431,7 @@ export default function SetupPage() {
 
     const logs: string[] = [
       `[00.12s] Ingesting telemetry pipeline (${dataSource === "HISTORICAL" ? (historicalMode === "CUSTOM_UPLOAD" ? uploadedFileName : "90-Day Metropolitan Baseline") : "Virtual Telemetry Simulator Node"})...`,
-      `[00.35s] Extracted ${dataSource === "HISTORICAL" ? uploadedRowCount.toLocaleString() : "8,640"} telemetry frames (Standard: IEC 62053-21 Class 1.0)...`,
+      `[00.35s] Extracted ${dataSource === "HISTORICAL" ? uploadedRowCount.toLocaleString() : "10,080"} telemetry frames (Standard: IEC 62053-21 Class 1.0)...`,
       `[00.60s] Initializing Bi-LSTM Disaggregation Net (Weights: Prior residential baseline)...`,
     ];
     setTrainingLogs([...logs]);
@@ -490,7 +490,7 @@ export default function SetupPage() {
       // Call backend trainModel in parallel
       api.telemetry.trainModel({
         datasetName: dataSource === "HISTORICAL" ? (historicalMode === "CUSTOM_UPLOAD" ? uploadedFileName : "90-Day Indian Baseline") : "Virtual Node Simulated Stream",
-        totalRecords: dataSource === "HISTORICAL" ? uploadedRowCount : 8640,
+        totalRecords: dataSource === "HISTORICAL" ? uploadedRowCount : 10080,
         epochs: 5,
       }).catch(err => console.warn("Backend training call:", err));
     } catch (err) {
@@ -1625,7 +1625,7 @@ export default function SetupPage() {
 
                           <div className="mt-3 flex flex-wrap items-center gap-4 font-mono text-[10px] text-[#666]">
                             <span>INTERVAL: 15-MIN REZ</span>
-                            <span>POINTS: {historicalMode === "CUSTOM_UPLOAD" ? uploadedRowCount.toLocaleString() : "8,640"} ROWS</span>
+                            <span>POINTS: {historicalMode === "CUSTOM_UPLOAD" ? uploadedRowCount.toLocaleString() : "10,080"} ROWS</span>
                             <span>IEC 62053-21 VERIFIED</span>
                           </div>
                         </div>
@@ -1674,7 +1674,7 @@ export default function SetupPage() {
                               </div>
                               <div className="flex justify-between text-[#555]">
                                 <span>TOTAL SAMPLES:</span>
-                                <span className="font-bold text-black">8,640 records (90 days continuous @ 15 min)</span>
+                                <span className="font-bold text-black">10,080 records (105 days continuous @ 15 min)</span>
                               </div>
                               <div className="flex justify-between text-[#555]">
                                 <span>CAPTURED SIGNATURES:</span>
@@ -2358,7 +2358,7 @@ export default function SetupPage() {
               <div className="border border-[#dedbd4] bg-white p-3">
                 <span className="block text-[9px] text-[#777]">TELEMETRY FRAMES</span>
                 <span className="text-base font-black text-black">
-                  {dataSource === "HISTORICAL" ? uploadedRowCount.toLocaleString() : "8,640"}
+                  {dataSource === "HISTORICAL" ? uploadedRowCount.toLocaleString() : "10,080"}
                 </span>
                 <span className="block text-[8px] text-[#777]">POINTS INGESTED</span>
               </div>
