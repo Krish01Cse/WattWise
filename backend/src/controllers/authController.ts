@@ -33,17 +33,22 @@ export class AuthController {
       }
 
       const profile = await EnergyStore.getProfile();
+      const token = `wtw_${Date.now()}_jwt`;
+      const user = {
+        id: validation.user.id,
+        email: validation.user.email,
+        fullName: validation.user.fullName,
+        nodeId: validation.user.nodeId,
+      };
+
       return res.status(200).json({
         status: 'success',
         message: 'Operator authenticated successfully',
+        token,
+        user,
         data: {
-          token: `wtw_${Date.now()}_jwt`,
-          user: {
-            id: validation.user.id,
-            email: validation.user.email,
-            fullName: validation.user.fullName,
-            nodeId: validation.user.nodeId,
-          },
+          token,
+          user,
           profile: {
             ...profile,
             email: validation.user.email,
@@ -106,10 +111,22 @@ export class AuthController {
         }
       }
 
+      const token = `wtw_${Date.now()}_jwt`;
+      const user = {
+        id: newUser.id,
+        email: newUser.email,
+        fullName: newUser.fullName,
+        nodeId: newUser.nodeId,
+      };
+
       return res.status(201).json({
         status: 'success',
         message: 'Operator registered successfully in Supabase credinals table',
+        token,
+        user,
         data: {
+          token,
+          user,
           id: newUser.id,
           email: newUser.email,
           fullName: newUser.fullName,

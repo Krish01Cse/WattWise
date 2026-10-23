@@ -124,10 +124,10 @@ function AuthContent() {
         let backendUser = null;
         try {
           const res = await api.auth.signup({ email, password, fullName });
-          backendUser = res.user;
+          backendUser = res?.user || res?.data?.user;
         } catch (apiErr: any) {
-          if (apiErr.message && apiErr.message.includes("already registered")) {
-            setErrorMessage(apiErr.message);
+          if (apiErr.message && (apiErr.message.includes("already registered") || apiErr.message.includes("duplicate") || apiErr.message.includes("unique"))) {
+            setErrorMessage(`An account with email "${email}" is already registered. Please click 'Access Existing Node' below to log in.`);
             setIsSubmitting(false);
             return;
           }
@@ -170,12 +170,15 @@ function AuthContent() {
       // 1. Attempt backend authentication
       try {
         const response = await api.auth.login({ email, password });
-        if (response && response.token) {
+        const token = response?.token || response?.data?.token || `wtw_live_${Date.now()}`;
+        const user = response?.user || response?.data?.user;
+
+        if (response && (response.token || response.data || response.status === "success")) {
           localStorage.setItem(
             "wattwise_session",
             JSON.stringify({
-              token: response.token,
-              user: response.user,
+              token,
+              user: user || { email, role: "residential_operator" },
               persist: persistSession,
               loggedInAt: new Date().toISOString(),
             })
@@ -185,14 +188,16 @@ function AuthContent() {
           saveRegisteredUser({
             email,
             passwordHash: password,
-            fullName: response.user?.fullName || "Operator Node",
+            fullName: user?.fullName || "Operator Node",
           });
 
           setMessage("Telemetry node verified. Redirecting to energy command center...");
           setTimeout(() => {
-            router.push("/setup");
-          }, 400);
+            router.push("/dashboard");
+          }, 300);
           return;
+        } else {
+          throw new Error(response?.message || "Invalid operator credentials.");
         }
       } catch (backendErr: any) {
         const errMsg = backendErr.message || "";
@@ -217,7 +222,7 @@ function AuthContent() {
 
         if (!userMatch) {
           setErrorMessage(
-            `ACCESS DENIED: Account not found. No operator node is registered for "${email}". Please sign up first.`
+            backendErr.message || `ACCESS DENIED: Account not found. No operator node is registered for "${email}". Please sign up first.`
           );
           setIsSubmitting(false);
           return;
@@ -240,11 +245,12 @@ function AuthContent() {
           })
         );
         localStorage.setItem("wattwise_user_email", email);
+        localStorage.setItem("wattwise_user_password", password);
 
         setMessage("Telemetry node verified. Redirecting to energy command center...");
         setTimeout(() => {
-          router.push("/setup");
-        }, 400);
+          router.push("/dashboard");
+        }, 300);
         return;
       }
     } catch (err: any) {
