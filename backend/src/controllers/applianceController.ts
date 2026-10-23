@@ -34,7 +34,7 @@ export class ApplianceController {
 
   static async create(req: Request, res: Response) {
     try {
-      const { name, category, count, wattage, hoursPerDay, icon, status } = req.body;
+      const { name, specification, roomLocation, category, count, wattage, hoursPerDay, monthlyCostInr, dataSource, icon, status, statusLabel } = req.body;
 
       if (!name || !wattage) {
         return res.status(400).json({
@@ -47,13 +47,18 @@ export class ApplianceController {
       const appliance = await EnergyStore.addAppliance({
         householdId: household.id,
         name,
-        category: category || 'custom',
+        specification: specification || '',
+        roomLocation: roomLocation || 'Living Room',
+        category: category || 'Kitchen',
         count: count ? Number(count) : 1,
         wattage: Number(wattage),
         hoursPerDay: hoursPerDay ? Number(hoursPerDay) : 4.0,
         dailyKwh: 0,
+        monthlyCostInr: monthlyCostInr ? Number(monthlyCostInr) : undefined,
+        dataSource: dataSource || 'ESTIMATED',
         icon: icon || '⚡',
         status: status || 'normal',
+        statusLabel: statusLabel || 'NORMAL',
         isCustom: true,
       });
 

@@ -56,13 +56,18 @@ export interface Appliance {
   id: string;
   householdId: string;
   name: string;
+  specification?: string;
+  roomLocation?: string;
   category: string;
   count: number;
   wattage: number;
   hoursPerDay: number;
   dailyKwh: number;
+  monthlyCostInr?: number;
+  dataSource?: string;
   icon: string;
   status: ApplianceStatus;
+  statusLabel?: string;
   isCustom: boolean;
   createdAt: string;
   updatedAt: string;
