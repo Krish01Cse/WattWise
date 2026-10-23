@@ -52,8 +52,6 @@ export default function SettingsPage() {
   // Masking toggles for privacy
   const [showEmail, setShowEmail] = useState(false);
   const [showAltEmail, setShowAltEmail] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showAltPassword, setShowAltPassword] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
 
   // Modals
@@ -543,28 +541,8 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-sm tracking-widest text-black">
-                      {showPassword ? actualPassword : "••••••••••••"}
+                      ••••••••••••
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-[#666] hover:text-black transition-colors p-1"
-                      aria-label="Toggle password visibility"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        {showPassword ? (
-                          <>
-                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                            <line x1="1" y1="1" x2="23" y2="23" />
-                          </>
-                        ) : (
-                          <>
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </>
-                        )}
-                      </svg>
-                    </button>
                   </div>
                 </div>
               </div>
@@ -637,30 +615,10 @@ export default function SettingsPage() {
                     <div>
                       <span className="text-[11px] font-bold text-black block">Password</span>
                       <span className="text-xs text-[#555] tracking-widest">
-                        {showAltPassword ? actualPassword : "••••••••••••"}
+                        ••••••••••••
                       </span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowAltPassword(!showAltPassword)}
-                    className="text-[#666] hover:text-black transition-colors p-1"
-                    aria-label="Toggle password masking"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      {showAltPassword ? (
-                        <>
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </>
-                      ) : (
-                        <>
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </>
-                      )}
-                    </svg>
-                  </button>
                 </div>
 
                 {/* Danger Zone */}
