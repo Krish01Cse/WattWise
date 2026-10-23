@@ -191,9 +191,9 @@ function AuthContent() {
             fullName: user?.fullName || "Operator Node",
           });
 
-          setMessage("Telemetry node verified. Redirecting to energy command center...");
+          setMessage("Telemetry node verified. Redirecting to Household Details...");
           setTimeout(() => {
-            router.push("/dashboard");
+            router.push("/setup");
           }, 300);
           return;
         } else {
@@ -247,9 +247,9 @@ function AuthContent() {
         localStorage.setItem("wattwise_user_email", email);
         localStorage.setItem("wattwise_user_password", password);
 
-        setMessage("Telemetry node verified. Redirecting to energy command center...");
+        setMessage("Telemetry node verified. Redirecting to Household Details...");
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/setup");
         }, 300);
         return;
       }

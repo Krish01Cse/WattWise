@@ -169,6 +169,32 @@ export default function SetupPage() {
   // Validation message
   const [validationError, setValidationError] = useState("");
 
+  // Load existing household details from backend on mount
+  useEffect(() => {
+    async function loadSavedHousehold() {
+      try {
+        const res = await api.household.getCurrent();
+        if (res && res.data) {
+          if (res.data.name) setHouseholdName(res.data.name);
+          if (res.data.city) {
+            const foundCity = INDIAN_CITIES.find(
+              (c) => c.name.toLowerCase() === res.data.city.toLowerCase()
+            );
+            if (foundCity) setSelectedCity(foundCity);
+          }
+          if (res.data.housingType) {
+            const matchType = HOME_TYPES.find((t) => t.toLowerCase() === res.data.housingType.toLowerCase());
+            if (matchType) setHomeType(matchType);
+          }
+          if (res.data.sanctionedLoadKw) setSanctionedLoad(Number(res.data.sanctionedLoadKw));
+        }
+      } catch {
+        // Defaults preserved
+      }
+    }
+    loadSavedHousehold();
+  }, []);
+
   // Update selected DISCOM & base energy rate whenever city changes
   useEffect(() => {
     const discoms = getDiscomsForCity(selectedCity.name, selectedCity.state);
