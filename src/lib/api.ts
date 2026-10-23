@@ -109,6 +109,13 @@ export const api = {
   // Anomalies
   anomalies: {
     list: () => fetchJson<any>('/anomalies'),
+    getMlMetrics: (range: string = 'THIS_MONTH') =>
+      fetchJson<any>(`/anomalies/ml-metrics?range=${encodeURIComponent(range)}`),
+    updateSpikeStatus: (id: string, status: string) =>
+      fetchJson<any>(`/anomalies/spikes/${id}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status }),
+      }),
     resolve: (id: string) =>
       fetchJson<any>(`/anomalies/${id}/resolve`, {
         method: 'POST',
