@@ -164,3 +164,25 @@ export interface UserSettings {
   isCloudSynced?: boolean;
 }
 
+export interface UserCredentialRecord {
+  id?: string;
+  email: string;
+  password: string;
+  fullName?: string;
+  phoneNumber?: string;
+  city?: string;
+  state?: string;
+  residenceName?: string;
+  housingType?: string;
+  sanctionedLoadKw?: number;
+  discomName?: string;
+  tariffStructure?: string;
+  monthlyBudgetInr?: number;
+  signupDetails?: Record<string, any>;
+  isActive?: boolean;
+  lastLoginAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+

@@ -14,33 +14,7 @@ export class AuthController {
         });
       }
 
-      // If live Supabase auth is available
-      if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          return res.status(401).json({
-            status: 'error',
-            message: error.message || 'Invalid credentials or account not registered in system',
-          });
-        }
-
-        const profile = await EnergyStore.getProfile();
-        return res.status(200).json({
-          status: 'success',
-          message: 'Operator authenticated successfully',
-          data: {
-            session: data.session,
-            user: data.user,
-            profile,
-          },
-        });
-      }
-
-      // Local / Offline Node Auth Validation: Must be a signed-up operator
+      // Validate credentials against Supabase credinals table and HashMap
       const validation = await EnergyStore.validateUserCredentials(email, password);
       if (!validation.valid || !validation.user) {
         return res.status(401).json({
@@ -49,19 +23,32 @@ export class AuthController {
         });
       }
 
+      // If Supabase Auth is configured, attempt non-blocking sync
+      if (isSupabaseConfigured && supabase) {
+        try {
+          await supabase.auth.signInWithPassword({ email, password });
+        } catch (e) {
+          // Non-blocking fallback
+        }
+      }
+
       const profile = await EnergyStore.getProfile();
       return res.status(200).json({
         status: 'success',
-        message: 'Operator session established',
+        message: 'Operator authenticated successfully',
         data: {
-          token: 'demo-jwt-wattwise-telemetry-token',
+          token: `wtw_${Date.now()}_jwt`,
           user: {
             id: validation.user.id,
             email: validation.user.email,
             fullName: validation.user.fullName,
             nodeId: validation.user.nodeId,
           },
-          profile,
+          profile: {
+            ...profile,
+            email: validation.user.email,
+            fullName: validation.user.fullName,
+          },
         },
       });
     } catch (err: any) {
@@ -74,7 +61,7 @@ export class AuthController {
 
   static async signup(req: Request, res: Response) {
     try {
-      const { email, password, fullName } = req.body;
+      const { email, password, fullName, ...otherDetails } = req.body;
 
       if (!email || !password) {
         return res.status(400).json({
@@ -90,57 +77,47 @@ export class AuthController {
         });
       }
 
+      // Register user in store (HashMap and Supabase credinals & credentials table)
+      const newUser = await EnergyStore.registerUser({
+        email,
+        password,
+        fullName: fullName || 'Operator',
+        signupDetails: {
+          ...otherDetails,
+          signupTimestamp: new Date().toISOString(),
+          registeredSource: 'web_portal',
+        },
+      });
+
+      // Synchronize with Supabase Auth if configured (non-blocking)
       if (isSupabaseConfigured && supabase) {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName || 'New Operator',
+        try {
+          await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName || 'Operator',
+              },
             },
-          },
-        });
-
-        if (error) {
-          return res.status(400).json({
-            status: 'error',
-            message: error.message,
           });
+        } catch (authErr) {
+          console.warn('[SUPABASE AUTH] signUp notice:', authErr);
         }
-
-        return res.status(201).json({
-          status: 'success',
-          message: 'Operator node registered successfully',
-          data: data,
-        });
       }
 
-      // Register user in store
-      try {
-        const newUser = await EnergyStore.registerUser({
-          email,
-          password,
-          fullName,
-        });
-
-        return res.status(201).json({
-          status: 'success',
-          message: 'Operator registered successfully',
-          data: {
-            id: newUser.id,
-            email: newUser.email,
-            fullName: newUser.fullName,
-            nodeId: newUser.nodeId,
-          },
-        });
-      } catch (regErr: any) {
-        return res.status(409).json({
-          status: 'error',
-          message: regErr.message || 'User already exists',
-        });
-      }
+      return res.status(201).json({
+        status: 'success',
+        message: 'Operator registered successfully in Supabase credinals table',
+        data: {
+          id: newUser.id,
+          email: newUser.email,
+          fullName: newUser.fullName,
+          nodeId: newUser.nodeId,
+        },
+      });
     } catch (err: any) {
-      return res.status(500).json({
+      return res.status(409).json({
         status: 'error',
         message: err.message || 'Registration failed',
       });

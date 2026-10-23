@@ -43,6 +43,7 @@ const DEFAULT_SETTINGS: UserSettingsState = {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettingsState>(DEFAULT_SETTINGS);
+  const [actualPassword, setActualPassword] = useState("Passcode@2026");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -80,24 +81,52 @@ export default function SettingsPage() {
     async function fetchSettingsData() {
       try {
         setLoading(true);
-        const res = await api.settings.get();
+        const storedEmail =
+          typeof window !== "undefined"
+            ? localStorage.getItem("wattwise_user_email") ||
+              (() => {
+                try {
+                  const s = localStorage.getItem("wattwise_session");
+                  return s ? JSON.parse(s)?.user?.email : null;
+                } catch {
+                  return null;
+                }
+              })()
+            : null;
+
+        const res = await api.settings.get(storedEmail || undefined);
         if (res && res.data) {
           setSettings((prev) => ({
             ...prev,
             ...res.data,
-            // Ensure demoMode correlates with telemetrySource
+            emailAddress: res.data.emailAddress || storedEmail || prev.emailAddress,
             demoMode: res.data.telemetrySource !== "physical_sensors",
           }));
           setTempPhone(res.data.phoneNumber || "+91 98921 12345");
+          if (res.data.unmaskedPassword) {
+            setActualPassword(res.data.unmaskedPassword);
+          } else if (typeof window !== "undefined") {
+            const localPass = localStorage.getItem("wattwise_user_password");
+            if (localPass) setActualPassword(localPass);
+          }
+        } else if (storedEmail) {
+          setSettings((prev) => ({ ...prev, emailAddress: storedEmail }));
         }
       } catch (err: any) {
         console.warn("Could not load settings from server, using local defaults:", err);
+        if (typeof window !== "undefined") {
+          const storedEmail = localStorage.getItem("wattwise_user_email");
+          if (storedEmail) {
+            setSettings((prev) => ({ ...prev, emailAddress: storedEmail }));
+          }
+        }
       } finally {
         setLoading(false);
       }
     }
     fetchSettingsData();
   }, []);
+
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToastMessage(message);
@@ -181,6 +210,11 @@ export default function SettingsPage() {
         newPassword: passwordForm.newPassword,
         email: settings.emailAddress,
       });
+
+      setActualPassword(passwordForm.newPassword);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("wattwise_user_password", passwordForm.newPassword);
+      }
 
       setPasswordForm({
         currentPassword: "",
@@ -509,7 +543,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-sm tracking-widest text-black">
-                      {showPassword ? "Passcode@2026" : "••••••••••••"}
+                      {showPassword ? actualPassword : "••••••••••••"}
                     </span>
                     <button
                       type="button"
@@ -603,7 +637,7 @@ export default function SettingsPage() {
                     <div>
                       <span className="text-[11px] font-bold text-black block">Password</span>
                       <span className="text-xs text-[#555] tracking-widest">
-                        {showAltPassword ? "Passcode@2026" : "••••••••••••"}
+                        {showAltPassword ? actualPassword : "••••••••••••"}
                       </span>
                     </div>
                   </div>

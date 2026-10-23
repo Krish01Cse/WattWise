@@ -144,6 +144,7 @@ function AuthContent() {
           })
         );
         localStorage.setItem("wattwise_user_email", email);
+        localStorage.setItem("wattwise_user_password", password);
 
         setMessage("Account registered successfully. Initializing telemetry node...");
         setTimeout(() => {
@@ -180,6 +181,7 @@ function AuthContent() {
             })
           );
           localStorage.setItem("wattwise_user_email", email);
+          localStorage.setItem("wattwise_user_password", password);
           saveRegisteredUser({
             email,
             passwordHash: password,

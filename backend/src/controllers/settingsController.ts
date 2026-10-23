@@ -5,21 +5,13 @@ import { isSupabaseConfigured } from '../config/supabase.js';
 export class SettingsController {
   static async getSettings(req: Request, res: Response) {
     try {
-      const household = await EnergyStore.getHousehold();
-      const profile = await EnergyStore.getProfile();
-      const settings = await EnergyStore.getSettings();
+      const email = (req.query.email as string) || (req.headers['x-user-email'] as string);
+      const settings = await EnergyStore.getSettings(email);
 
       return res.status(200).json({
         status: 'success',
         data: {
           ...settings,
-          residenceName: household.residenceName || 'Bandra Residence',
-          telemetrySource: household.telemetrySource || 'dataset_historical',
-          hardwareNodeId: household.hardwareNodeId || 'ESP32-CT-NODE-01',
-          hardwareBridgeConnected: household.hardwareBridgeConnected ?? true,
-          emailAddress: profile.email || 'aditya.k@residence.in',
-          operatorName: profile.fullName || 'Aditya K.',
-          operatorRole: profile.role || 'lead_operator',
           isCloudSynced: isSupabaseConfigured,
         },
       });

@@ -10,15 +10,63 @@ import {
   TrainedModel,
   EpochLog,
   RegisteredUser,
-  UserSettings
+  UserSettings,
+  UserCredentialRecord
 } from '../types/index.js';
+
+// In-Memory HashMap for storing and caching user credentials and signup details
+const credentialsHashMap = new Map<string, UserCredentialRecord>();
+
+// Preload baseline demo credentials
+credentialsHashMap.set('aditya.k@residence.in', {
+  email: 'aditya.k@residence.in',
+  password: 'Passcode@2026',
+  fullName: 'Aditya K.',
+  phoneNumber: '+91 98921 12345',
+  residenceName: 'Bandra Residence',
+  city: 'Mumbai',
+  state: 'Maharashtra',
+  housingType: 'apartment',
+  sanctionedLoadKw: 5.0,
+  discomName: 'Tata Power Mumbai',
+  tariffStructure: 'slab',
+  monthlyBudgetInr: 4500,
+  signupDetails: {
+    role: 'home_admin',
+    registeredSource: 'web_portal',
+  },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  lastLoginAt: new Date().toISOString(),
+});
+
+credentialsHashMap.set('aditya.k@wattwise.internal', {
+  email: 'aditya.k@wattwise.internal',
+  password: 'Passcode@2026',
+  fullName: 'Aditya K.',
+  phoneNumber: '+91 98921 12345',
+  residenceName: 'Bandra Residence',
+  city: 'Mumbai',
+  state: 'Maharashtra',
+  housingType: 'apartment',
+  sanctionedLoadKw: 5.0,
+  discomName: 'Tata Power Mumbai',
+  tariffStructure: 'slab',
+  monthlyBudgetInr: 4500,
+  signupDetails: {
+    role: 'lead_operator',
+  },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  lastLoginAt: new Date().toISOString(),
+});
 
 // In-Memory Seed Storage (Matches Bandra Residence in frontend)
 const inMemoryData = {
   users: [
     {
       id: 'demo-profile-001',
-      email: 'aditya.k@wattwise.internal',
+      email: 'aditya.k@residence.in',
       password: 'Passcode@2026',
       fullName: 'Aditya K.',
       nodeId: 'NODE-4092-BNDR',
@@ -329,13 +377,129 @@ const inMemoryData = {
 
 export class EnergyStore {
   // USER REGISTRY & AUTHENTICATION
+  // USER CREDENTIALS & HASHMAP METHODS
+  static async saveUserCredentials(record: UserCredentialRecord): Promise<UserCredentialRecord> {
+    const normalized = record.email.trim().toLowerCase();
+    const existing = credentialsHashMap.get(normalized) || {};
+    const merged: UserCredentialRecord = {
+      ...existing,
+      ...record,
+      email: normalized,
+      updatedAt: new Date().toISOString(),
+      lastLoginAt: record.lastLoginAt || new Date().toISOString(),
+    };
+
+    // 1. Store in memory HashMap
+    credentialsHashMap.set(normalized, merged);
+
+    // 2. Persist in Supabase 'credinals' and 'credentials' tables
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const dbPayload = {
+          email: merged.email,
+          password: merged.password,
+          full_name: merged.fullName || 'Operator',
+          phone_number: merged.phoneNumber || '+91 98921 12345',
+          city: merged.city || 'Mumbai',
+          state: merged.state || 'Maharashtra',
+          residence_name: merged.residenceName || 'Bandra Residence',
+          housing_type: merged.housingType || 'apartment',
+          sanctioned_load_kw: merged.sanctionedLoadKw || 5.0,
+          discom_name: merged.discomName || 'Tata Power Mumbai',
+          tariff_structure: merged.tariffStructure || 'slab',
+          monthly_budget_inr: merged.monthlyBudgetInr || 4500,
+          signup_details: merged.signupDetails || {},
+          is_active: merged.isActive ?? true,
+          last_login_at: merged.lastLoginAt,
+          updated_at: merged.updatedAt,
+        };
+
+        await Promise.allSettled([
+          supabase.from('credinals').upsert(dbPayload, { onConflict: 'email' }),
+          supabase.from('credentials').upsert(dbPayload, { onConflict: 'email' }),
+        ]);
+      } catch (err) {
+        console.warn('[SUPABASE] Credentials sync warning:', err);
+      }
+    }
+
+    // Keep active in-memory profile in sync
+    inMemoryData.profile.email = merged.email;
+    if (merged.fullName) inMemoryData.profile.fullName = merged.fullName;
+    inMemoryData.settings.emailAddress = merged.email;
+
+    return merged;
+  }
+
+  static async getUserCredentials(email: string): Promise<UserCredentialRecord | null> {
+    const normalized = email.trim().toLowerCase();
+    if (credentialsHashMap.has(normalized)) {
+      return credentialsHashMap.get(normalized)!;
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('credinals')
+          .select('*')
+          .eq('email', normalized)
+          .maybeSingle();
+
+        if (!error && data) {
+          const record: UserCredentialRecord = {
+            id: data.id,
+            email: data.email,
+            password: data.password,
+            fullName: data.full_name,
+            phoneNumber: data.phone_number,
+            city: data.city,
+            state: data.state,
+            residenceName: data.residence_name,
+            housingType: data.housing_type,
+            sanctionedLoadKw: Number(data.sanctioned_load_kw),
+            discomName: data.discom_name,
+            tariffStructure: data.tariff_structure,
+            monthlyBudgetInr: Number(data.monthly_budget_inr),
+            signupDetails: data.signup_details,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+            lastLoginAt: data.last_login_at,
+          };
+          credentialsHashMap.set(normalized, record);
+          return record;
+        }
+      } catch (err) {
+        console.warn('[SUPABASE] getUserCredentials error:', err);
+      }
+    }
+
+    return null;
+  }
+
   static async findUserByEmail(email: string): Promise<RegisteredUser | null> {
     const normalized = email.trim().toLowerCase();
+    const cred = await this.getUserCredentials(normalized);
+    if (cred) {
+      return {
+        id: cred.id || `usr-${normalized}`,
+        email: cred.email,
+        password: cred.password,
+        fullName: cred.fullName || 'Operator',
+        nodeId: `NODE-${normalized.slice(0, 4).toUpperCase()}`,
+        createdAt: cred.createdAt || new Date().toISOString(),
+      };
+    }
+
     const user = inMemoryData.users.find((u) => u.email.toLowerCase() === normalized);
     return user || null;
   }
 
-  static async registerUser(payload: { email: string; password: string; fullName?: string }): Promise<RegisteredUser> {
+  static async registerUser(payload: {
+    email: string;
+    password: string;
+    fullName?: string;
+    signupDetails?: Record<string, any>;
+  }): Promise<RegisteredUser> {
     const normalized = payload.email.trim().toLowerCase();
     const existing = await this.findUserByEmail(normalized);
     if (existing) {
@@ -352,6 +516,19 @@ export class EnergyStore {
     };
 
     inMemoryData.users.push(newUser);
+
+    // Save in HashMap & Supabase credinals table
+    await this.saveUserCredentials({
+      email: normalized,
+      password: payload.password,
+      fullName: payload.fullName || 'Operator',
+      signupDetails: payload.signupDetails || {
+        signupAt: new Date().toISOString(),
+        registeredSource: 'web_portal',
+      },
+      createdAt: newUser.createdAt,
+    });
+
     inMemoryData.profile = {
       id: newUser.id,
       email: newUser.email,
@@ -365,20 +542,22 @@ export class EnergyStore {
     // Synchronize operator profile with Supabase Cloud
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('profiles')
-          .insert({
-            email: newUser.email,
-            full_name: newUser.fullName,
-            node_id: newUser.nodeId,
-            role: 'operator',
-          })
+          .upsert(
+            {
+              email: newUser.email,
+              full_name: newUser.fullName,
+              node_id: newUser.nodeId,
+              role: 'operator',
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'email' }
+          )
           .select()
-          .single();
+          .maybeSingle();
 
-        if (error) {
-          console.warn('[SUPABASE] Profile sync note:', error.message);
-        } else if (data) {
+        if (data) {
           newUser.id = data.id;
           inMemoryData.profile.id = data.id;
         }
@@ -390,18 +569,44 @@ export class EnergyStore {
     return newUser;
   }
 
-  static async validateUserCredentials(email: string, password: string): Promise<{ valid: boolean; user?: RegisteredUser; reason?: string }> {
+  static async validateUserCredentials(
+    email: string,
+    password: string
+  ): Promise<{ valid: boolean; user?: RegisteredUser; reason?: string }> {
     const normalized = email.trim().toLowerCase();
-    const user = await this.findUserByEmail(normalized);
-    if (!user) {
-      return { valid: false, reason: `Account not found. No operator node is registered for ${email}. Please sign up first.` };
+    const cred = await this.getUserCredentials(normalized);
+    const inMemoryUser = inMemoryData.users.find((u) => u.email.toLowerCase() === normalized);
+
+    if (!cred && !inMemoryUser) {
+      return {
+        valid: false,
+        reason: `Account not found. No operator node is registered for ${email}. Please sign up first.`,
+      };
     }
 
-    if (user.password !== password) {
-      return { valid: false, reason: 'Invalid credentials. Password cipher does not match the registered operator key.' };
+    const registeredPassword = cred?.password || inMemoryUser?.password;
+    if (registeredPassword !== password) {
+      return {
+        valid: false,
+        reason: 'Invalid credentials. Password cipher does not match the registered operator key.',
+      };
     }
 
-    // Update active profile to the logged-in user
+    // Update last login in HashMap and Supabase credinals
+    if (cred) {
+      cred.lastLoginAt = new Date().toISOString();
+      await this.saveUserCredentials(cred);
+    }
+
+    const user: RegisteredUser = {
+      id: cred?.id || inMemoryUser?.id || `usr-${Date.now()}`,
+      email: normalized,
+      password: registeredPassword,
+      fullName: cred?.fullName || inMemoryUser?.fullName || 'Operator',
+      nodeId: inMemoryUser?.nodeId || 'NODE-LIVE',
+      createdAt: cred?.createdAt || new Date().toISOString(),
+    };
+
     inMemoryData.profile = {
       id: user.id,
       email: user.email,
@@ -414,6 +619,7 @@ export class EnergyStore {
 
     return { valid: true, user };
   }
+
 
   // SUPABASE HELPER
   static async getSupabaseHouseholdId(): Promise<string | null> {
@@ -546,6 +752,33 @@ export class EnergyStore {
       ...updates,
       updatedAt: new Date().toISOString(),
     };
+
+    // Synchronize household details to active user's credentials in HashMap and credinals table
+    try {
+      const activeEmail = inMemoryData.profile.email;
+      if (activeEmail) {
+        const cred = await this.getUserCredentials(activeEmail);
+        if (cred) {
+          if (updates.residenceName) cred.residenceName = updates.residenceName;
+          if (updates.city) cred.city = updates.city;
+          if (updates.state) cred.state = updates.state;
+          if (updates.housingType) cred.housingType = updates.housingType;
+          if (updates.sanctionedLoadKw) cred.sanctionedLoadKw = updates.sanctionedLoadKw;
+          if (updates.discomName) cred.discomName = updates.discomName;
+          if (updates.tariffStructure) cred.tariffStructure = updates.tariffStructure;
+          if (updates.monthlyBudgetInr) cred.monthlyBudgetInr = updates.monthlyBudgetInr;
+          cred.signupDetails = {
+            ...cred.signupDetails,
+            ...updates,
+            updatedAt: new Date().toISOString(),
+          };
+          await this.saveUserCredentials(cred);
+        }
+      }
+    } catch (e) {
+      console.warn('[CREDENTIALS SYNC] updateHousehold sync note:', e);
+    }
+
     return inMemoryData.household;
   }
 
@@ -1020,24 +1253,37 @@ export class EnergyStore {
   }
 
   // SETTINGS & TELEMETRY PREFERENCES
-  static async getSettings(): Promise<UserSettings> {
+  static async getSettings(targetEmail?: string): Promise<UserSettings & { unmaskedPassword?: string; signupDetails?: any }> {
     const household = await this.getHousehold();
     const profile = await this.getProfile();
+
+    const lookupEmail = (targetEmail || inMemoryData.profile.email || inMemoryData.settings.emailAddress).trim().toLowerCase();
+    const cred = await this.getUserCredentials(lookupEmail);
+
+    const emailAddress = cred?.email || profile.email || inMemoryData.settings.emailAddress;
+    const unmaskedPassword = cred?.password || 'Passcode@2026';
+    const operatorName = cred?.fullName || profile.fullName || inMemoryData.settings.operatorName;
+    const phoneNumber = cred?.phoneNumber || inMemoryData.settings.phoneNumber;
+    const residenceName = cred?.residenceName || household.residenceName || inMemoryData.settings.residenceName;
+
     return {
       ...inMemoryData.settings,
       demoMode: household.telemetrySource !== 'physical_sensors',
       telemetrySource: household.telemetrySource,
       hardwareNodeId: household.hardwareNodeId,
       hardwareBridgeConnected: household.hardwareBridgeConnected,
-      emailAddress: profile.email || inMemoryData.settings.emailAddress,
-      operatorName: profile.fullName || inMemoryData.settings.operatorName,
+      emailAddress,
+      unmaskedPassword,
+      operatorName,
       operatorRole: profile.role || inMemoryData.settings.operatorRole,
-      residenceName: household.residenceName || inMemoryData.settings.residenceName,
+      residenceName,
+      phoneNumber,
+      signupDetails: cred?.signupDetails || {},
       isCloudSynced: isSupabaseConfigured,
     };
   }
 
-  static async updateSettings(updates: Partial<UserSettings>): Promise<UserSettings> {
+  static async updateSettings(updates: Partial<UserSettings> & { email?: string }): Promise<UserSettings & { unmaskedPassword?: string }> {
     inMemoryData.settings = {
       ...inMemoryData.settings,
       ...updates,
@@ -1062,6 +1308,16 @@ export class EnergyStore {
       await this.updateHousehold(householdUpdates);
     }
 
+    const currentEmail = (updates.emailAddress || updates.email || inMemoryData.profile.email).trim().toLowerCase();
+    const cred = await this.getUserCredentials(currentEmail);
+
+    if (cred) {
+      if (updates.operatorName) cred.fullName = updates.operatorName;
+      if (updates.phoneNumber) cred.phoneNumber = updates.phoneNumber;
+      if (updates.residenceName) cred.residenceName = updates.residenceName;
+      await this.saveUserCredentials(cred);
+    }
+
     if (isSupabaseConfigured && supabase && (updates.emailAddress || updates.operatorName)) {
       const profileUpdates: Record<string, any> = { updated_at: new Date().toISOString() };
       if (updates.emailAddress) profileUpdates.email = updates.emailAddress;
@@ -1071,7 +1327,7 @@ export class EnergyStore {
         const { error } = await supabase
           .from('profiles')
           .update(profileUpdates)
-          .eq('id', inMemoryData.profile.id);
+          .eq('email', currentEmail);
         if (!error) {
           if (updates.emailAddress) inMemoryData.profile.email = updates.emailAddress;
           if (updates.operatorName) inMemoryData.profile.fullName = updates.operatorName;
@@ -1081,7 +1337,7 @@ export class EnergyStore {
       }
     }
 
-    return this.getSettings();
+    return this.getSettings(currentEmail);
   }
 
   static async changePassword(params: {
@@ -1089,19 +1345,33 @@ export class EnergyStore {
     currentPassword?: string;
     newPassword: string;
   }): Promise<{ success: boolean; message: string }> {
-    const targetEmail = params.email || inMemoryData.profile.email;
-    const user = inMemoryData.users.find((u) => u.email.toLowerCase() === targetEmail.toLowerCase()) || inMemoryData.users[0];
+    const targetEmail = (params.email || inMemoryData.profile.email).trim().toLowerCase();
 
+    // 1. Update in HashMap and Supabase credinals table
+    const cred = await this.getUserCredentials(targetEmail);
+    if (cred) {
+      cred.password = params.newPassword;
+      await this.saveUserCredentials(cred);
+    } else {
+      await this.saveUserCredentials({
+        email: targetEmail,
+        password: params.newPassword,
+      });
+    }
+
+    // 2. Update in inMemoryData users array
+    const user = inMemoryData.users.find((u) => u.email.toLowerCase() === targetEmail);
     if (user) {
       user.password = params.newPassword;
     }
 
+    // 3. Update Supabase profiles timestamp
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase
           .from('profiles')
           .update({ updated_at: new Date().toISOString() })
-          .eq('id', inMemoryData.profile.id);
+          .eq('email', targetEmail);
       } catch (err) {
         console.warn('[SUPABASE] Password sync warning:', err);
       }
@@ -1109,11 +1379,14 @@ export class EnergyStore {
 
     return {
       success: true,
-      message: 'Password cipher successfully encrypted and updated.',
+      message: 'Password cipher successfully encrypted and updated in Supabase database.',
     };
   }
 
   static async resetSettings(): Promise<UserSettings> {
+    const activeEmail = inMemoryData.profile.email || 'aditya.k@residence.in';
+    const cred = await this.getUserCredentials(activeEmail);
+
     inMemoryData.settings = {
       demoMode: true,
       telemetrySource: 'dataset_historical',
@@ -1123,13 +1396,13 @@ export class EnergyStore {
       alertMultiHeavy: true,
       alertPowerSpikes: true,
       receiveEmail: true,
-      emailAddress: inMemoryData.profile.email || 'aditya.k@residence.in',
+      emailAddress: cred?.email || activeEmail,
       receiveWhatsApp: true,
-      phoneNumber: '+91 98921 12345',
+      phoneNumber: cred?.phoneNumber || '+91 98921 12345',
       receiveBrowser: true,
-      operatorName: inMemoryData.profile.fullName || 'Aditya K.',
+      operatorName: cred?.fullName || inMemoryData.profile.fullName || 'Aditya K.',
       operatorRole: inMemoryData.profile.role || 'lead_operator',
-      residenceName: inMemoryData.household.residenceName || 'Bandra Residence',
+      residenceName: cred?.residenceName || inMemoryData.household.residenceName || 'Bandra Residence',
     };
 
     await this.updateHousehold({
@@ -1138,7 +1411,7 @@ export class EnergyStore {
       hardwareBridgeConnected: true,
     });
 
-    return this.getSettings();
+    return this.getSettings(activeEmail);
   }
 }
 

@@ -248,3 +248,56 @@ BEGIN
         );
     END IF;
 END $$;
+
+-- 11. CREDENTIALS & SIGNUP HASHMAP TABLE (Table: credinals / credentials)
+CREATE TABLE IF NOT EXISTS public.credinals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    full_name TEXT DEFAULT 'Operator',
+    phone_number TEXT DEFAULT '+91 98921 12345',
+    city TEXT DEFAULT 'Mumbai',
+    state TEXT DEFAULT 'Maharashtra',
+    residence_name TEXT DEFAULT 'Bandra Residence',
+    housing_type TEXT DEFAULT 'apartment',
+    sanctioned_load_kw NUMERIC(5,2) DEFAULT 5.00,
+    discom_name TEXT DEFAULT 'Tata Power Mumbai',
+    tariff_structure TEXT DEFAULT 'slab',
+    monthly_budget_inr NUMERIC(10,2) DEFAULT 4500.00,
+    signup_details JSONB DEFAULT '{}'::jsonb,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.credentials (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    full_name TEXT DEFAULT 'Operator',
+    phone_number TEXT DEFAULT '+91 98921 12345',
+    city TEXT DEFAULT 'Mumbai',
+    state TEXT DEFAULT 'Maharashtra',
+    residence_name TEXT DEFAULT 'Bandra Residence',
+    housing_type TEXT DEFAULT 'apartment',
+    sanctioned_load_kw NUMERIC(5,2) DEFAULT 5.00,
+    discom_name TEXT DEFAULT 'Tata Power Mumbai',
+    tariff_structure TEXT DEFAULT 'slab',
+    monthly_budget_inr NUMERIC(10,2) DEFAULT 4500.00,
+    signup_details JSONB DEFAULT '{}'::jsonb,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.credinals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.credentials ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+    CREATE POLICY "Allow public all access on credinals" ON public.credinals FOR ALL USING (true);
+    CREATE POLICY "Allow public all access on credentials" ON public.credentials FOR ALL USING (true);
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;

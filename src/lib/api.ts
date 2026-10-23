@@ -132,7 +132,8 @@ export const api = {
 
   // Settings & Preferences
   settings: {
-    get: () => fetchJson<any>('/settings'),
+    get: (email?: string) =>
+      fetchJson<any>(`/settings${email ? `?email=${encodeURIComponent(email)}` : ''}`),
     update: (payload: any) =>
       fetchJson<any>('/settings', {
         method: 'PUT',
